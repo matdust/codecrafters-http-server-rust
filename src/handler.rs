@@ -1,11 +1,13 @@
+use std::io::Write;
+
 const CRLF: &str = "\r\n";
 const HTTP_VERSION: &str = "HTTP/1.1";
 
-pub fn handle_request(stream: std::net::TcpStream) {
-    produce_response();
+pub fn handle_request(mut stream: std::net::TcpStream) {
+    produce_response(&mut stream);
 }
 
-fn produce_response() {
+fn produce_response(stream: &mut std::net::TcpStream) {
     let mut response = String::new();
     // STATUS LINE
     response.push_str(&format!("{} ", HTTP_VERSION));
@@ -19,5 +21,6 @@ fn produce_response() {
 
     // RESPONSE BODY
 
-    print!("{}", &response);
+    stream.write_all(response.as_bytes()).unwrap();
+    stream.flush().unwrap();
 }
