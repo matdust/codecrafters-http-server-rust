@@ -8,9 +8,9 @@ pub fn handle_request(stream: std::net::TcpStream) {
 fn produce_response() {
     let mut response = String::new();
     // STATUS LINE
-    response.push_str(&format!("{}\n", HTTP_VERSION));
-    response.push_str("200\n");
-    response.push_str("OK\n");
+    response.push_str(&format!("{} ", HTTP_VERSION));
+    response.push_str("200 ");
+    response.push_str("OK");
 
     response.push_str(CRLF);
     // HEADERS
