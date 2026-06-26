@@ -1,7 +1,4 @@
-use std::{
-    collections::HashMap,
-    ops::{Deref, DerefMut},
-};
+use std::{collections::HashMap, ops::DerefMut};
 
 use crate::{handler::Handler, request::HttpMethod};
 
@@ -94,8 +91,13 @@ impl<'a> Router<'a> {
         Ok(())
     }
 
-    pub fn match_route(&self, http_method: HttpMethod, route: &str) -> Option<&'a dyn Handler> {
+    pub fn match_route(
+        &self,
+        http_method: HttpMethod,
+        route: &str,
+    ) -> Option<(&dyn Handler, HashMap<String, String>)> {
         let parts = route.split('/').skip(1).collect::<Vec<_>>();
+        let mut params = HashMap::new();
         let mut head = &self.routes;
 
         for path_part in parts {
@@ -105,14 +107,17 @@ impl<'a> Router<'a> {
             }
 
             if let Some(dynamic_route) = &head.dynamic_route {
+                params.insert(dynamic_route.0.clone(), path_part.to_string());
                 head = dynamic_route.1.as_ref();
                 continue;
             }
 
             return None;
         }
-
-        head.handlers.get(&http_method).copied()
+        match head.handlers.get(&http_method).copied() {
+            Some(handler) => Some((handler, params.to_owned())),
+            None => None,
+        }
     }
 }
 

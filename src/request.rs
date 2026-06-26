@@ -1,6 +1,4 @@
-use std::collections::HashMap;
-
-use crate::request;
+use std::collections::{HashMap, HashSet};
 
 pub const CRLF: &str = "\r\n";
 
@@ -9,6 +7,7 @@ pub struct Request {
     lines: Lines,
     headers: Headers,
     body: Body,
+    pub params: HashMap<String, String>,
 }
 
 impl Request {
@@ -19,6 +18,7 @@ impl Request {
             lines,
             headers: Headers::new(&[]),
             body: Body::new(&[]),
+            params: HashMap::new(),
         }
     }
 
@@ -90,7 +90,7 @@ impl HttpVersion {
 pub struct Headers {}
 impl Headers {
     // TODO: implement
-    fn new(header_section: &[&str]) -> Self {
+    fn new(_header_section: &[&str]) -> Self {
         Self {}
     }
 }
@@ -99,7 +99,7 @@ impl Headers {
 pub struct Body {}
 impl Body {
     // TODO: implement
-    fn new(body: &[&str]) -> Self {
+    fn new(_body: &[&str]) -> Self {
         Self {}
     }
 }

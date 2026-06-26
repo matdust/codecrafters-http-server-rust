@@ -5,6 +5,7 @@ const HTTP_VERSION: &str = "HTTP/1.1";
 pub struct Response {
     status_code: StatusCode,
     msg: String,
+    pub body: Option<String>,
 }
 
 impl Default for Response {
@@ -12,6 +13,7 @@ impl Default for Response {
         Self {
             status_code: StatusCode::NotFound,
             msg: String::default(),
+            body: None,
         }
     }
 }
@@ -21,6 +23,7 @@ impl Response {
         Self {
             status_code,
             msg: msg.to_string(),
+            body: None,
         }
     }
 
@@ -28,6 +31,7 @@ impl Response {
         Self {
             status_code: StatusCode::NotFound,
             msg: String::default(),
+            body: None,
         }
     }
 
@@ -45,8 +49,9 @@ impl Response {
         response.push_str(CRLF);
 
         // RESPONSE BODY
-        //
-
+        if self.body.is_some() {
+            response.push_str(&self.body.clone().unwrap());
+        }
         response
     }
 }

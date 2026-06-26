@@ -1,8 +1,7 @@
-use std::io::Write;
 
 use crate::{
-    request::{HttpMethod, Request},
-    response::{Response, StatusCode},
+    request::Request,
+    response::Response,
 };
 
 pub trait Handler: std::fmt::Debug {
