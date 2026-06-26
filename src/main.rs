@@ -22,7 +22,7 @@ fn main() {
     let mut router = Router::default();
 
     let _ = router.add_route(request::HttpMethod::GET, "/", &RootHandler {});
-    let _ = router.add_route(request::HttpMethod::GET, "/echo/{str}", &RootHandler {});
+    let _ = router.add_route(request::HttpMethod::GET, "/echo/{str}", &EchoHandler {});
 
     let listener = TcpListener::bind("127.0.0.1:4221").unwrap();
 
@@ -69,6 +69,7 @@ struct EchoHandler {}
 
 impl Handler for EchoHandler {
     fn handle_request(&self, req: &Request) -> Response {
+        println!("{:?}", &req);
         match req.params.get("str") {
             Some(value) => {
                 let mut resp = Response::new(StatusCode::Ok, "");

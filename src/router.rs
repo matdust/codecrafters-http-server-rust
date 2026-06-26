@@ -107,7 +107,8 @@ impl<'a> Router<'a> {
             }
 
             if let Some(dynamic_route) = &head.dynamic_route {
-                params.insert(dynamic_route.0.clone(), path_part.to_string());
+                let dynamic_route_value = Node::strip_dynamic_route(&dynamic_route.0);
+                params.insert(dynamic_route_value.to_string(), path_part.to_string());
                 head = dynamic_route.1.as_ref();
                 continue;
             }
@@ -162,6 +163,10 @@ impl<'a> Node<'a> {
 
     pub fn is_dynamic_route_part(path_part: &str) -> bool {
         path_part.starts_with('{') && path_part.ends_with('}')
+    }
+
+    pub fn strip_dynamic_route(path_part: &str) -> &str {
+        &path_part[1..path_part.len() - 1]
     }
 }
 
