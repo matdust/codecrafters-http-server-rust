@@ -1,36 +1,52 @@
 const CRLF: &str = "\r\n";
 const HTTP_VERSION: &str = "HTTP/1.1";
 
-#[derive(Debug)]
-pub struct Response {
+pub struct ResponseBuilder {
     status_code: StatusCode,
-    msg: String,
-    pub body: Option<String>,
+    headers: Vec<ResponseHeader>,
 }
 
-impl Default for Response {
+impl Default for ResponseBuilder {
     fn default() -> Self {
         Self {
             status_code: StatusCode::NotFound,
-            msg: String::default(),
+            headers: Default::default(),
+        }
+    }
+}
+
+impl ResponseBuilder {
+    pub fn status_code(&mut self, status_code: StatusCode) -> &mut Self {
+        self.status_code = status_code;
+        self
+    }
+
+    pub fn header(&mut self, header: ResponseHeader) -> &mut Self {
+        self.headers.push(header);
+        self
+    }
+
+    pub fn build(&mut self) -> Response {
+        Response {
+            status_code: self.status_code,
+            headers: self.headers.clone(),
             body: None,
         }
     }
 }
 
-impl Response {
-    pub fn new(status_code: StatusCode, msg: &str) -> Self {
-        Self {
-            status_code,
-            msg: msg.to_string(),
-            body: None,
-        }
-    }
+#[derive(Debug)]
+pub struct Response {
+    status_code: StatusCode,
+    headers: Vec<ResponseHeader>,
+    pub body: Option<String>,
+}
 
+impl Response {
     pub fn not_found() -> Self {
         Self {
             status_code: StatusCode::NotFound,
-            msg: String::default(),
+            headers: Vec::default(),
             body: None,
         }
     }
@@ -45,6 +61,9 @@ impl Response {
 
         response.push_str(CRLF);
         // HEADERS
+        for header in &self.headers {
+            response.push_str(&format!("{}:{}{}", header.key, header.value, CRLF));
+        }
 
         response.push_str(CRLF);
 
@@ -54,6 +73,34 @@ impl Response {
         }
         response
     }
+}
+
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+pub struct ResponseHeader {
+    key: String,
+    value: String,
+}
+
+impl ResponseHeader {
+    pub fn content_type(content_type: ContentType) -> Self {
+        Self {
+            key: "Content-Type".to_string(),
+            value: match content_type {
+                ContentType::TextPlain => "text/plain".to_string(),
+            },
+        }
+    }
+
+    pub fn content_length(length: usize) -> Self {
+        Self {
+            key: "Content-Length".to_string(),
+            value: length.to_string(),
+        }
+    }
+}
+
+pub enum ContentType {
+    TextPlain,
 }
 
 #[derive(Debug, Copy, Clone)]

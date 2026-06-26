@@ -5,7 +5,7 @@ use std::net::TcpListener;
 use crate::{
     handler::Handler,
     request::Request,
-    response::{Response, StatusCode},
+    response::{Response, ResponseBuilder, ResponseHeader, StatusCode},
     router::Router,
     sender::send_response,
 };
@@ -60,7 +60,9 @@ fn main() {
 struct RootHandler {}
 impl Handler for RootHandler {
     fn handle_request(&self, _req: &Request) -> Response {
-        Response::new(response::StatusCode::Ok, &String::default())
+        ResponseBuilder::default()
+            .status_code(StatusCode::Ok)
+            .build()
     }
 }
 
@@ -72,7 +74,14 @@ impl Handler for EchoHandler {
         println!("{:?}", &req);
         match req.params.get("str") {
             Some(value) => {
-                let mut resp = Response::new(StatusCode::Ok, "");
+                let mut resp = ResponseBuilder::default()
+                    .header(ResponseHeader::content_type(
+                        response::ContentType::TextPlain,
+                    ))
+                    .header(ResponseHeader::content_length(value.len()))
+                    .status_code(StatusCode::Ok)
+                    .build();
+
                 resp.body = Some(value.clone());
                 resp
             }

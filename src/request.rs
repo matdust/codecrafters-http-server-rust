@@ -5,7 +5,7 @@ pub const CRLF: &str = "\r\n";
 #[derive(Debug)]
 pub struct Request {
     lines: Lines,
-    headers: Headers,
+    headers: RequestHeaders,
     body: Body,
     pub params: HashMap<String, String>,
 }
@@ -16,7 +16,7 @@ impl Request {
 
         Self {
             lines,
-            headers: Headers::new(&[]),
+            headers: RequestHeaders::new(&[]),
             body: Body::new(&[]),
             params: HashMap::new(),
         }
@@ -87,8 +87,8 @@ impl HttpVersion {
 }
 
 #[derive(Debug)]
-pub struct Headers {}
-impl Headers {
+pub struct RequestHeaders {}
+impl RequestHeaders {
     // TODO: implement
     fn new(_header_section: &[&str]) -> Self {
         Self {}
