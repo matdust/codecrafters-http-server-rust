@@ -2,35 +2,20 @@ use std::io::{BufRead, BufReader, Read, Write};
 #[allow(unused_imports)]
 use std::net::TcpListener;
 
-use crate::{handler::Handler, request::Request, router::Router};
+use crate::{handler::Handler, request::Request, response::Response, router::Router};
 
 mod handler;
 mod request;
 mod response;
 mod router;
+mod sender;
 
 const PORT: u16 = 4221;
 
 fn main() {
-    println!("Server starter on {}", PORT);
     let mut router = Router::default();
 
-    let _ = router.add_route(request::HttpMethod::GET, "/{foo}/{bar}", &Foo {});
-    let _ = router.add_route(request::HttpMethod::GET, "/{echo}", &Foo {});
-
-    let _ = router.add_route(request::HttpMethod::GET, "/foo/bar", &Foo {});
-    let _ = router.add_route(request::HttpMethod::GET, "/echo", &Foo {});
-
-    let _ = router.add_route(
-        request::HttpMethod::GET,
-        "/foo/{fooId}/bar/{barId}",
-        &Foo {},
-    );
-    let _ = router.add_route(request::HttpMethod::GET, "/foo/{fooId}", &Foo {});
-    let _ = router.add_route(request::HttpMethod::GET, "/foo/{fooId}/bar", &Foo {});
-    println!("{:#?}", router);
-
-    return;
+    let _ = router.add_route(request::HttpMethod::GET, "/", &RootHandler {});
 
     let listener = TcpListener::bind("127.0.0.1:4221").unwrap();
 
@@ -45,25 +30,28 @@ fn main() {
                     .take_while(|line| !line.is_empty())
                     .collect();
 
-                println!("req lines: {:?}", payload);
-                let request = Request::new(payload);
+                let request = Request::parse(payload);
+                let req_handler = router.match_route(request.http_method(), request.url());
+
+                if req_handler.is_none() {
+                    sender::send_response(stream, Response::not_found());
+                    return;
+                }
+                let req_handler = req_handler.unwrap();
+                let resp = req_handler.handle_request(&request);
+                sender::send_response(stream, resp);
             }
             Err(e) => {
-                println!("error: {}", e);
+                eprintln!("error: {}", e);
             }
         }
     }
 }
 
-struct Foo {}
-impl Handler for Foo {
-    fn handle_request(&self, req: &Request) -> response::Response {
-        todo!()
-    }
-}
-
-impl std::fmt::Debug for Foo {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Foo handler")
+#[derive(Debug)]
+struct RootHandler {}
+impl Handler for RootHandler {
+    fn handle_request(&self, req: &Request) -> Response {
+        Response::new(response::StatusCode::Ok, &String::default())
     }
 }

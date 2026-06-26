@@ -7,20 +7,37 @@ pub struct Response {
     msg: String,
 }
 
+impl Default for Response {
+    fn default() -> Self {
+        Self {
+            status_code: StatusCode::NotFound,
+            msg: String::default(),
+        }
+    }
+}
+
 impl Response {
-    pub fn new(status_code: StatusCode) -> Self {
+    pub fn new(status_code: StatusCode, msg: &str) -> Self {
         Self {
             status_code,
-            msg: status_code.clone().reason_phrase(),
+            msg: msg.to_string(),
         }
     }
 
-    pub fn produce(&self) -> String {
+    pub fn not_found() -> Self {
+        Self {
+            status_code: StatusCode::NotFound,
+            msg: String::default(),
+        }
+    }
+
+    pub fn parse(&self) -> String {
         let mut response = String::new();
         // STATUS LINE
         response.push_str(&format!("{} ", HTTP_VERSION));
-        response.push_str("200 ");
-        response.push_str("OK");
+        response.push_str(self.status_code.status_code_value());
+        response.push(' ');
+        response.push_str(self.status_code.reason_phrase());
 
         response.push_str(CRLF);
         // HEADERS
@@ -41,10 +58,16 @@ pub enum StatusCode {
 }
 
 impl StatusCode {
-    pub fn reason_phrase(&self) -> String {
+    pub fn status_code_value(&self) -> &str {
         match self {
-            StatusCode::Ok => "OK".to_string(),
-            StatusCode::NotFound => "Not Found".to_string(),
+            StatusCode::Ok => "200",
+            StatusCode::NotFound => "404",
+        }
+    }
+    pub fn reason_phrase(&self) -> &str {
+        match self {
+            StatusCode::Ok => "OK",
+            StatusCode::NotFound => "Not Found",
         }
     }
 }

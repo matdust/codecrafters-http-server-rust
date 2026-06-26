@@ -9,29 +9,32 @@ pub struct Request {
     lines: Lines,
     headers: Headers,
     body: Body,
-    params: HashMap<String, String>,
 }
 
 impl Request {
-    pub fn new(request: Vec<String>) -> Self {
+    pub fn parse(request: Vec<String>) -> Self {
         let lines = Lines::new(&request[0].split_whitespace().collect::<Vec<_>>());
-
-        println!("lines: {:?}", lines);
 
         Self {
             lines,
             headers: Headers::new(&[]),
             body: Body::new(&[]),
-            params: HashMap::new(),
         }
+    }
+
+    pub fn http_method(&self) -> HttpMethod {
+        self.lines.http_method.clone()
+    }
+
+    pub fn url(&self) -> &str {
+        &self.lines.url
     }
 }
 
 #[derive(Debug)]
 pub struct Lines {
     http_method: HttpMethod,
-    /// URL
-    request_target: String,
+    url: String,
     http_version: HttpVersion,
 }
 
@@ -43,7 +46,7 @@ impl Lines {
 
         Self {
             http_method,
-            request_target: request_target.to_string(),
+            url: request_target.to_string(),
             http_version,
         }
     }

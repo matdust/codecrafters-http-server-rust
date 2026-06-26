@@ -32,7 +32,6 @@ impl<'a> Router<'a> {
     ) -> anyhow::Result<()> {
         // TODO: add check for route
         let parts = route.split('/').skip(1).collect::<Vec<_>>();
-        println!("{:?}", parts);
         let mut path_parts_iter = parts.into_iter().peekable();
         let mut head = &mut self.routes;
 
@@ -70,7 +69,6 @@ impl<'a> Router<'a> {
                 // if node is present and doesn't have handler
                 if head.static_routes.contains_key(path_part) {
                     let static_route = head.static_routes.get_mut(path_part).unwrap();
-                    println!("Static route: {:?}", static_route);
                     if !static_route.handlers.contains_key(&http_method) {
                         return static_route.set_handler(http_method.clone(), handler);
                     }
@@ -95,6 +93,27 @@ impl<'a> Router<'a> {
 
         Ok(())
     }
+
+    pub fn match_route(&self, http_method: HttpMethod, route: &str) -> Option<&'a dyn Handler> {
+        let parts = route.split('/').skip(1).collect::<Vec<_>>();
+        let mut head = &self.routes;
+
+        for path_part in parts {
+            if let Some(static_route) = head.static_routes.get(path_part) {
+                head = static_route;
+                continue;
+            }
+
+            if let Some(dynamic_route) = &head.dynamic_route {
+                head = dynamic_route.1.as_ref();
+                continue;
+            }
+
+            return None;
+        }
+
+        head.handlers.get(&http_method).copied()
+    }
 }
 
 #[derive(Clone, Default)]
@@ -104,7 +123,6 @@ struct Node<'a> {
     // /{foo}/{bar}
     dynamic_route: Option<(String, Box<Node<'a>>)>,
     handlers: HashMap<HttpMethod, &'a dyn Handler>,
-    // foo: Vec<dyn Handler>,
 }
 
 impl<'a> Node<'a> {
@@ -147,17 +165,6 @@ impl<'a> std::fmt::Debug for Node<'a> {
         f.debug_struct("Node")
             .field("static_routes", &self.static_routes)
             .field("dynamic_route", &self.dynamic_route)
-            // .field(
-            //     "handlers",
-            //     &format_args!(
-            //         "[handler{:?} ]",
-            //         self.handlers
-            //             .iter()
-            //             .map(|h| format!("http_handler: {:?}, name: {:?}", h.0,))
-            //             .collect::<Vec<_>>()
-            //     ),
-            // )
-            // .finish()
             .field("handlers", &self.handlers)
             .finish()
     }
