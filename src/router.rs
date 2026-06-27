@@ -1,6 +1,6 @@
 use std::{collections::HashMap, ops::DerefMut};
 
-use crate::{handler::Handler, request::HttpMethod};
+use crate::{handler::*, request::HttpMethod};
 
 #[derive(Debug)]
 pub struct Router<'a> {
@@ -9,13 +9,15 @@ pub struct Router<'a> {
 
 impl<'a> Default for Router<'a> {
     fn default() -> Self {
-        Self {
+        let mut router = Self {
             routes: Node {
                 static_routes: HashMap::new(),
                 dynamic_route: None,
                 handlers: HashMap::new(),
             },
-        }
+        };
+        router.init_routes();
+        router
     }
 }
 
@@ -119,6 +121,12 @@ impl<'a> Router<'a> {
             Some(handler) => Some((handler, params.to_owned())),
             None => None,
         }
+    }
+
+    fn init_routes(&mut self) {
+        let _ = self.add_route(HttpMethod::GET, "/", &RootHandler {});
+        let _ = self.add_route(HttpMethod::GET, "/echo/{str}", &EchoHandler {});
+        let _ = self.add_route(HttpMethod::GET, "/user-agent", &UserAgentHandler {});
     }
 }
 

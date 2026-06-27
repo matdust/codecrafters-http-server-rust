@@ -1,4 +1,4 @@
-use crate::request::HeaderName;
+use crate::header::HeaderName;
 
 const CRLF: &str = "\r\n";
 const HTTP_VERSION: &str = "HTTP/1.1";
@@ -74,18 +74,6 @@ impl Response {
             response.push_str(&self.body.clone().unwrap());
         }
         response
-    }
-}
-
-pub enum ContentType {
-    TextPlain,
-}
-
-impl ContentType {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            ContentType::TextPlain => "text/plain",
-        }
     }
 }
 
