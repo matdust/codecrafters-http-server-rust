@@ -53,6 +53,22 @@ impl Response {
         }
     }
 
+    pub fn bad_request() -> Self {
+        Self {
+            status_code: StatusCode::BadRequest,
+            headers: Vec::default(),
+            body: None,
+        }
+    }
+
+    pub fn internal_server_error() -> Self {
+        Self {
+            status_code: StatusCode::InternalServerError,
+            headers: Vec::default(),
+            body: None,
+        }
+    }
+
     pub fn parse(&self) -> String {
         let mut response = String::new();
         // STATUS LINE
@@ -79,8 +95,14 @@ impl Response {
 
 #[derive(Debug, Copy, Clone)]
 pub enum StatusCode {
+    // 2xx
     Ok,
+    Created,
+    // 4xx
     NotFound,
+    BadRequest,
+    // 5xx
+    InternalServerError,
 }
 
 impl StatusCode {
@@ -88,12 +110,18 @@ impl StatusCode {
         match self {
             StatusCode::Ok => "200",
             StatusCode::NotFound => "404",
+            StatusCode::Created => "201",
+            StatusCode::BadRequest => "400",
+            StatusCode::InternalServerError => "500",
         }
     }
     pub fn reason_phrase(&self) -> &str {
         match self {
             StatusCode::Ok => "OK",
             StatusCode::NotFound => "Not Found",
+            StatusCode::Created => "Created",
+            StatusCode::BadRequest => "Bad Request",
+            StatusCode::InternalServerError => "Internal Server Error",
         }
     }
 }

@@ -8,7 +8,7 @@ pub const CRLF: &str = "\r\n";
 pub struct Request {
     lines: Lines,
     headers: HashMap<HeaderName, String>,
-    body: Body,
+    pub body: Option<Vec<u8>>,
     pub params: HashMap<String, String>,
 }
 
@@ -23,13 +23,13 @@ impl Request {
             })
             .collect();
 
-        println!("{:?}", request);
-        println!("{:?}", headers);
+        // println!("REQUEST: {:?}", request);
+        // println!("HEADERS: {:?}", headers);
 
         Self {
             headers,
             lines,
-            body: Body::new(&[]),
+            body: None,
             params: HashMap::new(),
         }
     }
@@ -99,13 +99,5 @@ impl HttpVersion {
             "HTTP/1.3" => Self::HTTP13,
             _ => panic!("cannot parse {} http version", content),
         }
-    }
-}
-#[derive(Debug)]
-pub struct Body {}
-impl Body {
-    // TODO: implement
-    fn new(_body: &[&str]) -> Self {
-        Self {}
     }
 }

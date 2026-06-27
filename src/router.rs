@@ -137,7 +137,12 @@ impl Router {
         let _ = self.add_route(
             HttpMethod::GET,
             "/files/{filename}",
-            Box::new(FileHandler {}),
+            Box::new(FileHandlerGet {}),
+        );
+        let _ = self.add_route(
+            HttpMethod::POST,
+            "/files/{filename}",
+            Box::new(FileHandlerPost {}),
         );
     }
 

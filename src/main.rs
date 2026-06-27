@@ -1,7 +1,9 @@
 use clap::Parser;
-use tokio::io::{AsyncBufReadExt, BufReader};
+use tokio::io::{AsyncBufReadExt, AsyncReadExt, BufReader};
 
-use crate::{args::Args, request::Request, response::Response, router::Router};
+use crate::{
+    args::Args, header::ContentType, request::Request, response::Response, router::Router,
+};
 
 mod args;
 mod handler;
@@ -43,6 +45,18 @@ async fn handle_connection(mut stream: tokio::net::TcpStream) {
     }
 
     let mut request = Request::parse(payload);
+
+    // handle body
+    if let Some(content_length) = request.headers().get(&header::HeaderName::ContentLength)
+        && let Ok(length) = content_length.parse::<usize>()
+        && let Some(content_type) = request.headers().get(&header::HeaderName::ContentType)
+        && content_type == ContentType::OctetStream.as_str()
+    {
+        let mut body = vec![0; length];
+        let _ = reader.read_exact(&mut body).await;
+        request.body = Some(body);
+    }
+
     let router = Router::global();
 
     let resp = match router.match_route(request.http_method(), request.url()) {

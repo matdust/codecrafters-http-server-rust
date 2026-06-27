@@ -63,9 +63,9 @@ impl Handler for UserAgentHandler {
 }
 
 #[derive(Debug)]
-pub struct FileHandler {}
+pub struct FileHandlerGet {}
 
-impl Handler for FileHandler {
+impl Handler for FileHandlerGet {
     fn handle_request(&self, req: &Request) -> Response {
         match req.params.get("filename") {
             Some(filename) => {
@@ -94,5 +94,31 @@ impl Handler for FileHandler {
             }
             None => Response::not_found(),
         }
+    }
+}
+
+#[derive(Debug)]
+pub struct FileHandlerPost {}
+impl Handler for FileHandlerPost {
+    fn handle_request(&self, req: &Request) -> Response {
+        let filename = match req.params.get("filename") {
+            Some(filename) => filename,
+            None => return Response::bad_request(),
+        };
+
+        let body = match &req.body {
+            Some(body) => body,
+            None => return Response::bad_request(),
+        };
+
+        let file_path = format!("{}{}", &Args::get().directory.clone().unwrap(), filename);
+
+        if std::fs::write(file_path, body).is_err() {
+            return Response::internal_server_error();
+        };
+
+        ResponseBuilder::default()
+            .status_code(StatusCode::Created)
+            .build()
     }
 }
