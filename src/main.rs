@@ -1,14 +1,6 @@
-use std::io::{BufRead, BufReader};
-use std::net::TcpListener;
+use tokio::io::{AsyncBufReadExt, BufReader};
 
-use crate::handler::*;
-use crate::{
-    handler::Handler,
-    header::HeaderName,
-    request::Request,
-    response::{Response, ResponseBuilder, StatusCode},
-    router::Router,
-};
+use crate::{request::Request, response::Response, router::Router};
 
 mod handler;
 mod header;
@@ -19,37 +11,45 @@ mod sender;
 
 const PORT: u16 = 4221;
 
-fn main() {
-    let router = Router::default();
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    // let router = Router::default();
 
-    let listener = TcpListener::bind("127.0.0.1:4221").unwrap();
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:4221").await?;
 
-    for stream in listener.incoming() {
-        match stream {
-            Ok(stream) => {
-                let buf_reader = BufReader::new(&stream);
-
-                let payload = buf_reader
-                    .lines()
-                    .map(|result| result.unwrap())
-                    .take_while(|line| !line.is_empty())
-                    .collect();
-
-                let mut request = Request::parse(payload);
-                let req_handler = router.match_route(request.http_method(), request.url());
-
-                if req_handler.is_none() {
-                    sender::send_response(stream, Response::not_found());
-                    return;
-                }
-                let (req_handler, params) = req_handler.unwrap();
-                request.params = params;
-                let resp = req_handler.handle_request(&request);
-                sender::send_response(stream, resp);
-            }
-            Err(e) => {
-                eprintln!("error: {}", e);
-            }
-        }
+    loop {
+        let (stream, _) = listener.accept().await?;
+        tokio::spawn(handle_connection(stream));
     }
+}
+
+async fn handle_connection(mut stream: tokio::net::TcpStream) {
+    let mut reader = BufReader::new(&mut stream);
+    let mut payload = Vec::new();
+    loop {
+        let mut line = String::new();
+        let n = reader.read_line(&mut line).await.unwrap();
+        if n == 0 {
+            break;
+        }
+
+        let trimmed = line.trim_end().to_string();
+        if trimmed.is_empty() {
+            break;
+        }
+        payload.push(trimmed);
+    }
+
+    let mut request = Request::parse(payload);
+    let router = Router::global();
+
+    let resp = match router.match_route(request.http_method(), request.url()) {
+        Some((handler, params)) => {
+            request.params = params;
+            handler.handle_request(&request)
+        }
+        None => Response::not_found(),
+    };
+
+    sender::send_response(stream, resp).await;
 }

@@ -4,7 +4,7 @@ use crate::{
     response::{Response, ResponseBuilder, StatusCode},
 };
 
-pub trait Handler: std::fmt::Debug {
+pub trait Handler: std::fmt::Debug + Send + Sync {
     fn handle_request(&self, req: &Request) -> Response;
 }
 

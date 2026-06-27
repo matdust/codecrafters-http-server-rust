@@ -1,9 +1,9 @@
-use std::io::Write;
+use tokio::io::AsyncWriteExt;
 
 use crate::response::Response;
 
-pub fn send_response(mut stream: std::net::TcpStream, response: Response) {
+pub async fn send_response(mut socket: tokio::net::TcpStream, response: Response) {
     let response = response.parse();
-    stream.write_all(response.as_bytes()).unwrap();
-    stream.flush().unwrap();
+    let _ = socket.write_all(response.as_bytes()).await;
+    let _ = socket.flush().await;
 }

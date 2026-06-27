@@ -1,13 +1,16 @@
+use std::sync::OnceLock;
 use std::{collections::HashMap, ops::DerefMut};
 
 use crate::{handler::*, request::HttpMethod};
 
+static ROUTER: OnceLock<Router> = OnceLock::new();
+
 #[derive(Debug)]
-pub struct Router<'a> {
-    routes: Node<'a>,
+pub struct Router {
+    routes: Node,
 }
 
-impl<'a> Default for Router<'a> {
+impl Default for Router {
     fn default() -> Self {
         let mut router = Self {
             routes: Node {
@@ -21,13 +24,13 @@ impl<'a> Default for Router<'a> {
     }
 }
 
-impl<'a> Router<'a> {
+impl Router {
     // {value} - is treated as dynamic route
-    pub fn add_route(
+    fn add_route(
         &mut self,
         http_method: HttpMethod,
         route: &str,
-        handler: &'a dyn Handler,
+        handler: Box<dyn Handler>,
     ) -> anyhow::Result<()> {
         // TODO: add check for route
         let parts = route.split('/').skip(1).collect::<Vec<_>>();
@@ -117,29 +120,33 @@ impl<'a> Router<'a> {
 
             return None;
         }
-        match head.handlers.get(&http_method).copied() {
-            Some(handler) => Some((handler, params.to_owned())),
+        match head.handlers.get(&http_method) {
+            Some(handler) => Some((handler.as_ref(), params)),
             None => None,
         }
     }
 
     fn init_routes(&mut self) {
-        let _ = self.add_route(HttpMethod::GET, "/", &RootHandler {});
-        let _ = self.add_route(HttpMethod::GET, "/echo/{str}", &EchoHandler {});
-        let _ = self.add_route(HttpMethod::GET, "/user-agent", &UserAgentHandler {});
+        let _ = self.add_route(HttpMethod::GET, "/", Box::new(RootHandler {}));
+        let _ = self.add_route(HttpMethod::GET, "/echo/{str}", Box::new(EchoHandler {}));
+        let _ = self.add_route(HttpMethod::GET, "/user-agent", Box::new(UserAgentHandler {}));
+    }
+
+    pub fn global() -> &'static Router {
+        ROUTER.get_or_init(Router::default)
     }
 }
 
-#[derive(Clone, Default)]
-struct Node<'a> {
+#[derive(Default)]
+struct Node {
     // /foo/bar
-    static_routes: HashMap<String, Node<'a>>,
+    static_routes: HashMap<String, Node>,
     // /{foo}/{bar}
-    dynamic_route: Option<(String, Box<Node<'a>>)>,
-    handlers: HashMap<HttpMethod, &'a dyn Handler>,
+    dynamic_route: Option<(String, Box<Node>)>,
+    handlers: HashMap<HttpMethod, Box<dyn Handler>>,
 }
 
-impl<'a> Node<'a> {
+impl Node {
     pub fn set_static_route(&mut self, path: &str) -> &mut Self {
         self.static_routes.insert(path.to_string(), Node::default());
         self
@@ -152,7 +159,7 @@ impl<'a> Node<'a> {
     pub fn set_handler(
         &mut self,
         http_method: HttpMethod,
-        handler: &'a dyn Handler,
+        handler: Box<dyn Handler>,
     ) -> anyhow::Result<()> {
         if self.handlers.contains_key(&http_method) {
             return Err(anyhow::Error::msg("key alread exists"));
@@ -178,7 +185,7 @@ impl<'a> Node<'a> {
     }
 }
 
-impl<'a> std::fmt::Debug for Node<'a> {
+impl std::fmt::Debug for Node {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Node")
             .field("static_routes", &self.static_routes)
