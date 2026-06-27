@@ -129,7 +129,16 @@ impl Router {
     fn init_routes(&mut self) {
         let _ = self.add_route(HttpMethod::GET, "/", Box::new(RootHandler {}));
         let _ = self.add_route(HttpMethod::GET, "/echo/{str}", Box::new(EchoHandler {}));
-        let _ = self.add_route(HttpMethod::GET, "/user-agent", Box::new(UserAgentHandler {}));
+        let _ = self.add_route(
+            HttpMethod::GET,
+            "/user-agent",
+            Box::new(UserAgentHandler {}),
+        );
+        let _ = self.add_route(
+            HttpMethod::GET,
+            "/files/{filename}",
+            Box::new(FileHandler {}),
+        );
     }
 
     pub fn global() -> &'static Router {

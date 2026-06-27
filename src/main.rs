@@ -1,7 +1,9 @@
+use clap::Parser;
 use tokio::io::{AsyncBufReadExt, BufReader};
 
-use crate::{request::Request, response::Response, router::Router};
+use crate::{args::Args, request::Request, response::Response, router::Router};
 
+mod args;
 mod handler;
 mod header;
 mod request;
@@ -13,7 +15,7 @@ const PORT: u16 = 4221;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    // let router = Router::default();
+    let args = Args::parse();
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:4221").await?;
 
