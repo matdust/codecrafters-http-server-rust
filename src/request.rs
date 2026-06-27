@@ -5,7 +5,7 @@ pub const CRLF: &str = "\r\n";
 #[derive(Debug)]
 pub struct Request {
     lines: Lines,
-    headers: RequestHeaders,
+    headers: HashMap<HeaderName, String>,
     body: Body,
     pub params: HashMap<String, String>,
 }
@@ -13,10 +13,20 @@ pub struct Request {
 impl Request {
     pub fn parse(request: Vec<String>) -> Self {
         let lines = Lines::new(&request[0].split_whitespace().collect::<Vec<_>>());
+        let headers = request[1..]
+            .iter()
+            .filter_map(|header| {
+                let (name, value) = header.split_once(':')?;
+                Some((HeaderName::from_str(name.trim())?, value.trim().to_string()))
+            })
+            .collect();
+
+        println!("{:?}", request);
+        println!("{:?}", headers);
 
         Self {
+            headers,
             lines,
-            headers: RequestHeaders::new(&[]),
             body: Body::new(&[]),
             params: HashMap::new(),
         }
@@ -28,6 +38,10 @@ impl Request {
 
     pub fn url(&self) -> &str {
         &self.lines.url
+    }
+
+    pub fn headers(&self) -> &HashMap<HeaderName, String> {
+        &self.headers
     }
 }
 
@@ -86,12 +100,35 @@ impl HttpVersion {
     }
 }
 
-#[derive(Debug)]
-pub struct RequestHeaders {}
-impl RequestHeaders {
-    // TODO: implement
-    fn new(_header_section: &[&str]) -> Self {
-        Self {}
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+pub enum HeaderName {
+    Host,
+    ContentType,
+    ContentLength,
+    UserAgent,
+    Accept,
+}
+
+impl HeaderName {
+    pub fn from_str(value: &str) -> Option<Self> {
+        match value {
+            "Host" => Some(HeaderName::Host),
+            "User-Agent" => Some(HeaderName::UserAgent),
+            "Accept" => Some(HeaderName::Accept),
+            "Content-Type" => Some(HeaderName::ContentType),
+            "Content-Length" => Some(HeaderName::ContentLength),
+            _ => None,
+        }
+    }
+
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            HeaderName::Host => "Host",
+            HeaderName::UserAgent => "User-Agent",
+            HeaderName::Accept => "Accept",
+            HeaderName::ContentType => "Content-Type",
+            HeaderName::ContentLength => "Content-Length",
+        }
     }
 }
 

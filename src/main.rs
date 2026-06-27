@@ -4,10 +4,9 @@ use std::net::TcpListener;
 
 use crate::{
     handler::Handler,
-    request::Request,
-    response::{Response, ResponseBuilder, ResponseHeader, StatusCode},
+    request::{HeaderName, Request},
+    response::{ContentType, Response, ResponseBuilder, StatusCode},
     router::Router,
-    sender::send_response,
 };
 
 mod handler;
@@ -23,6 +22,11 @@ fn main() {
 
     let _ = router.add_route(request::HttpMethod::GET, "/", &RootHandler {});
     let _ = router.add_route(request::HttpMethod::GET, "/echo/{str}", &EchoHandler {});
+    let _ = router.add_route(
+        request::HttpMethod::GET,
+        "/user-agent",
+        &UserAgentHandler {},
+    );
 
     let listener = TcpListener::bind("127.0.0.1:4221").unwrap();
 
@@ -71,20 +75,42 @@ struct EchoHandler {}
 
 impl Handler for EchoHandler {
     fn handle_request(&self, req: &Request) -> Response {
-        println!("{:?}", &req);
         match req.params.get("str") {
             Some(value) => {
                 let mut resp = ResponseBuilder::default()
-                    .header(ResponseHeader::content_type(
-                        response::ContentType::TextPlain,
-                    ))
-                    .header(ResponseHeader::content_length(value.len()))
+                    .header(
+                        request::HeaderName::ContentType,
+                        ContentType::TextPlain.as_str(),
+                    )
+                    .header(request::HeaderName::ContentLength, &value.len().to_string())
                     .status_code(StatusCode::Ok)
                     .build();
 
                 resp.body = Some(value.clone());
                 resp
             }
+            None => Response::not_found(),
+        }
+    }
+}
+
+#[derive(Debug)]
+struct UserAgentHandler {}
+
+impl Handler for UserAgentHandler {
+    fn handle_request(&self, req: &Request) -> Response {
+        match req.headers().get(&HeaderName::UserAgent) {
+            Some(user_agent) => {
+                let mut resp = ResponseBuilder::default()
+                    .status_code(StatusCode::Ok)
+                    .header(HeaderName::ContentType, ContentType::TextPlain.as_str())
+                    .header(HeaderName::ContentLength, &user_agent.len().to_string())
+                    .build();
+
+                resp.body = Some(user_agent.clone());
+                resp
+            }
+
             None => Response::not_found(),
         }
     }

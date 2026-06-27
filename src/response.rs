@@ -1,9 +1,11 @@
+use crate::request::HeaderName;
+
 const CRLF: &str = "\r\n";
 const HTTP_VERSION: &str = "HTTP/1.1";
 
 pub struct ResponseBuilder {
     status_code: StatusCode,
-    headers: Vec<ResponseHeader>,
+    headers: Vec<(HeaderName, String)>,
 }
 
 impl Default for ResponseBuilder {
@@ -21,8 +23,8 @@ impl ResponseBuilder {
         self
     }
 
-    pub fn header(&mut self, header: ResponseHeader) -> &mut Self {
-        self.headers.push(header);
+    pub fn header(&mut self, header: HeaderName, value: &str) -> &mut Self {
+        self.headers.push((header, value.to_string()));
         self
     }
 
@@ -38,7 +40,7 @@ impl ResponseBuilder {
 #[derive(Debug)]
 pub struct Response {
     status_code: StatusCode,
-    headers: Vec<ResponseHeader>,
+    headers: Vec<(HeaderName, String)>,
     pub body: Option<String>,
 }
 
@@ -55,14 +57,14 @@ impl Response {
         let mut response = String::new();
         // STATUS LINE
         response.push_str(&format!("{} ", HTTP_VERSION));
-        response.push_str(self.status_code.status_code_value());
+        response.push_str(self.status_code.as_status_code_number());
         response.push(' ');
         response.push_str(self.status_code.reason_phrase());
 
         response.push_str(CRLF);
         // HEADERS
         for header in &self.headers {
-            response.push_str(&format!("{}:{}{}", header.key, header.value, CRLF));
+            response.push_str(&format!("{}:{}{}", header.0.as_str(), header.1, CRLF));
         }
 
         response.push_str(CRLF);
@@ -75,32 +77,16 @@ impl Response {
     }
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub struct ResponseHeader {
-    key: String,
-    value: String,
-}
-
-impl ResponseHeader {
-    pub fn content_type(content_type: ContentType) -> Self {
-        Self {
-            key: "Content-Type".to_string(),
-            value: match content_type {
-                ContentType::TextPlain => "text/plain".to_string(),
-            },
-        }
-    }
-
-    pub fn content_length(length: usize) -> Self {
-        Self {
-            key: "Content-Length".to_string(),
-            value: length.to_string(),
-        }
-    }
-}
-
 pub enum ContentType {
     TextPlain,
+}
+
+impl ContentType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            ContentType::TextPlain => "text/plain",
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -110,7 +96,7 @@ pub enum StatusCode {
 }
 
 impl StatusCode {
-    pub fn status_code_value(&self) -> &str {
+    pub fn as_status_code_number(&self) -> &str {
         match self {
             StatusCode::Ok => "200",
             StatusCode::NotFound => "404",
